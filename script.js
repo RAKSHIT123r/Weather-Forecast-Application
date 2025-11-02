@@ -15,10 +15,51 @@ const elements = {
   sparkTemp: document.getElementById('sparkTemp'),
   sparkRain: document.getElementById('sparkRain'),
   tempRange: document.getElementById('tempRange'),
-  rainRange: document.getElementById('rainRange')
+  rainRange: document.getElementById('rainRange'),
+  tempUnitToggle: document.getElementById('tempUnitToggle'),
+  tempUnitC: document.getElementById('tempUnitC'),
+  tempUnitF: document.getElementById('tempUnitF')
 };
 
 const WEEKDAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// Temperature unit management
+let tempUnit = localStorage.getItem('tempUnit') || 'celsius'; // 'celsius' or 'fahrenheit'
+
+function celsiusToFahrenheit(c) {
+  return (c * 9/5) + 32;
+}
+
+function fahrenheitToCelsius(f) {
+  return (f - 32) * 5/9;
+}
+
+function convertTemp(value, fromUnit, toUnit) {
+  if (value === null || value === undefined || Number.isNaN(value)) return null;
+  if (fromUnit === toUnit) return value;
+  if (fromUnit === 'celsius' && toUnit === 'fahrenheit') {
+    return celsiusToFahrenheit(value);
+  }
+  if (fromUnit === 'fahrenheit' && toUnit === 'celsius') {
+    return fahrenheitToCelsius(value);
+  }
+  return value;
+}
+
+function updateTempUnitToggle() {
+  if (tempUnit === 'celsius') {
+    elements.tempUnitC.classList.add('active');
+    elements.tempUnitC.classList.remove('inactive');
+    elements.tempUnitF.classList.add('inactive');
+    elements.tempUnitF.classList.remove('active');
+  } else {
+    elements.tempUnitF.classList.add('active');
+    elements.tempUnitF.classList.remove('inactive');
+    elements.tempUnitC.classList.add('inactive');
+    elements.tempUnitC.classList.remove('active');
+  }
+  localStorage.setItem('tempUnit', tempUnit);
+}
 
 function showLoading(show) {
   elements.loading.classList.toggle('show', !!show);
@@ -32,7 +73,12 @@ function setStatus(msg, isError = false) {
 
 function toCelsiusString(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
-  return Math.round(value) + '°';
+  const converted = tempUnit === 'fahrenheit' 
+    ? convertTemp(value, 'celsius', 'fahrenheit')
+    : value;
+  const rounded = Math.round(converted);
+  const unit = tempUnit === 'fahrenheit' ? '°F' : '°C';
+  return rounded + unit;
 }
 
 function weatherCodeToInfo(code, isDay = true) {
@@ -258,8 +304,19 @@ function renderHourlySparks(place, data) {
   if (subTemps.length) {
     const tMin = Math.min(...subTemps);
     const tMax = Math.max(...subTemps);
-    elements.tempRange.textContent = `${Math.round(tMin)}° – ${Math.round(tMax)}°`;
-    drawSparkline(elements.sparkTemp, subTemps, '#7aa2ff');
+    const convertedMin = tempUnit === 'fahrenheit' 
+      ? convertTemp(tMin, 'celsius', 'fahrenheit')
+      : tMin;
+    const convertedMax = tempUnit === 'fahrenheit' 
+      ? convertTemp(tMax, 'celsius', 'fahrenheit')
+      : tMax;
+    const unit = tempUnit === 'fahrenheit' ? '°F' : '°C';
+    elements.tempRange.textContent = `${Math.round(convertedMin)}${unit} – ${Math.round(convertedMax)}${unit}`;
+    // Convert temps for sparkline visualization
+    const convertedTemps = subTemps.map(t => tempUnit === 'fahrenheit' 
+      ? convertTemp(t, 'celsius', 'fahrenheit')
+      : t);
+    drawSparkline(elements.sparkTemp, convertedTemps, '#7aa2ff');
   }
   if (subRains.length) {
     const rMin = Math.min(...subRains);
@@ -269,6 +326,10 @@ function renderHourlySparks(place, data) {
   }
 }
 
+// Store last data for re-rendering when unit changes
+let lastPlace = null;
+let lastData = null;
+
 async function updateByCity(city) {
   setStatus('Searching...');
   showLoading(true);
@@ -276,6 +337,8 @@ async function updateByCity(city) {
     const place = await geocodeCity(city);
     setStatus('Fetching forecast...');
     const data = await fetchForecast(place.latitude, place.longitude, place.timezone);
+    lastPlace = place;
+    lastData = data;
     renderCurrent(place, data);
     renderForecast(data);
     renderDetails(data);
@@ -378,6 +441,8 @@ async function updateByCoords(lat, lon) {
   try {
     const place = await reverseGeocode(lat, lon);
     const data = await fetchForecast(place.latitude, place.longitude, place.timezone);
+    lastPlace = place;
+    lastData = data;
     renderCurrent(place, data);
     renderForecast(data);
     renderDetails(data);
@@ -391,9 +456,23 @@ async function updateByCoords(lat, lon) {
   }
 }
 
+// Handle temperature unit toggle
+elements.tempUnitToggle.addEventListener('click', () => {
+  tempUnit = tempUnit === 'celsius' ? 'fahrenheit' : 'celsius';
+  updateTempUnitToggle();
+  // Re-render if we have data
+  if (lastPlace && lastData) {
+    renderCurrent(lastPlace, lastData);
+    renderForecast(lastData);
+    renderDetails(lastData);
+    renderHourlySparks(lastPlace, lastData);
+  }
+});
+
 // Initial load (default to Kharar, Chandigarh, India if no query param)
 (function init() {
   resizeCanvas();
+  updateTempUnitToggle();
   const params = new URLSearchParams(window.location.search);
   const q = params.get('q') || 'Kharar, Chandigarh, India';
   elements.input.value = q;
