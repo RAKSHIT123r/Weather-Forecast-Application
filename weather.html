@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather forecast</title>
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="theme-clear">
+    <div class="ambient" aria-hidden="true">
+      <div class="sunrays"></div>
+      <div class="stars"></div>
+      <div class="bokeh"></div>
+      <div class="orb a"></div>
+      <div class="orb b"></div>
+      <div class="orb c"></div>
+    </div>
+    <div class="clouds" aria-hidden="true">
+      <div class="cloud-layer" style="background-image: var(--cloud-svg);"></div>
+      <div class="cloud-layer front" style="background-image: var(--cloud-svg);"></div>
+    </div>
+    <canvas id="fxCanvas"></canvas>
+    <div class="app">
+      <header>
+        <div class="brand" aria-label="App name">
+          <div class="logo" aria-hidden="true">☼</div>
+          <div>Weather forecast</div>
+        </div>
+        <form id="searchForm" class="search" role="search" aria-label="Search city">
+          <input id="cityInput" type="text" name="q" placeholder="Search city or place..." aria-label="City name" autocomplete="off" />
+          <button id="searchBtn" type="submit" aria-label="Search">Search</button>
+        </form>
+        <button id="tempUnitToggle" class="temp-unit-toggle" aria-label="Toggle temperature unit">
+          <span id="tempUnitC">°C</span>
+          <span class="separator">/</span>
+          <span id="tempUnitF">°F</span>
+        </button>
+      </header>
+
+      <main class="content" id="content">
+        <section class="panel current" aria-live="polite">
+          <div class="location" id="location">—</div>
+          <div class="temp" id="temp">—</div>
+          <div class="meta"><span id="date">—</span><span id="timezone">—</span></div>
+          <div class="condition"><span class="icon" id="currentIcon">—</span><span id="currentText">—</span></div>
+        </section>
+
+        <section class="panel">
+          <h3 style="margin: 0 0 10px 0;">7-Day Forecast</h3>
+          <div id="forecast" class="forecast" aria-live="polite"></div>
+          <div class="details" id="details"></div>
+          <div class="extras">
+            <div class="extra-card">
+              <div class="extra-title"><span>Next 24h Temperature</span><span id="tempRange">—</span></div>
+              <div class="spark-wrap"><canvas id="sparkTemp" class="spark"></canvas></div>
+            </div>
+            <div class="extra-card">
+              <div class="extra-title"><span>Next 24h Rain Probability</span><span id="rainRange">—</span></div>
+              <div class="spark-wrap"><canvas id="sparkRain" class="spark"></canvas></div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <div class="status" id="status" aria-live="polite"></div>
+        <div>
+          Data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open‑Meteo</a>
+        </div>
+      </footer>
+    </div>
+
+    <div class="loading" id="loading" aria-hidden="true">
+      <div class="spinner" role="progressbar" aria-label="Loading"></div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
+
+
